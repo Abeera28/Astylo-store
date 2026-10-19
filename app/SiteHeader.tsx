@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "../lib/supabase/client";
 import { useCart } from "../lib/cart";
+import PageNav from "./PageNav";
 
 const BANNERS: Record<string, { eyebrow: string; title: string; text: string }> = {
   orders: {
@@ -205,6 +206,7 @@ export default function SiteHeader() {
           </div>
         </div>
       )}
+     <PageNav wrap />
     </>
   );
 }

@@ -826,3 +826,225 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+
+/* =====================================================
+   PHOTO VIEWER, BACK BUTTONS, BREADCRUMBS (added)
+   ===================================================== */
+
+/* shoe page photo + thumbnails */
+.gallery-main {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.gallery-hint {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: var(--shadow-md);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gallery-thumbs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gallery-thumbs::-webkit-scrollbar {
+  display: none;
+}
+
+/* full-screen viewer */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgb(18 12 14 / 0.96);
+  color: #fff;
+}
+
+.lightbox-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem var(--gutter);
+}
+
+.lightbox-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.lightbox-tools {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@media (hover: hover) {
+  .lightbox-btn:hover {
+    background: #fff;
+    color: var(--ink);
+  }
+}
+
+.lightbox-swiper {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  --swiper-navigation-color: #fff;
+  --swiper-navigation-size: 1.6rem;
+  --swiper-pagination-color: #fff;
+  --swiper-pagination-bullet-inactive-color: #fff;
+  --swiper-pagination-bullet-inactive-opacity: 0.45;
+  --swiper-pagination-bullet-size: 0.6rem;
+  --swiper-pagination-bullet-horizontal-gap: 0.3rem;
+}
+
+.lightbox-swiper .swiper-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-swiper .swiper-pagination {
+  bottom: 1rem;
+}
+
+/* arrows only on devices with a mouse; phones and iPads swipe */
+@media (hover: none) {
+  .lightbox-swiper .swiper-button-prev,
+  .lightbox-swiper .swiper-button-next {
+    display: none;
+  }
+}
+
+/* back button + breadcrumb */
+.page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.back-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 1rem 0.4rem 0.8rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .back-pill:hover {
+    background: var(--ink);
+    color: #fff;
+  }
+}
+
+.crumbs {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--color-gray-500);
+}
+
+@media (min-width: 640px) {
+  .crumbs {
+    display: flex;
+  }
+}
+
+.crumbs li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.crumbs li + li::before {
+  content: "›";
+  color: var(--color-gray-400);
+}
+
+.crumbs a:hover {
+  color: var(--rose);
+  text-decoration: underline;
+}
+
+.crumbs li.is-current span {
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* admin "Back to dashboard" links become real buttons */
+.admin-content a.underline[href="/admin"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .admin-content a.underline[href="/admin"]:hover {
+    background: var(--ink);
+    color: #fff;
+  }
+}

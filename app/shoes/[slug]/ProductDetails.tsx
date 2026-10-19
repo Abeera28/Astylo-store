@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "../../../lib/cart";
+import ProductGallery from "./ProductGallery";
 
 type Product = {
   id: string;
@@ -104,33 +105,12 @@ export default function ProductDetails({ product }: { product: Product }) {
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
-      <div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={product.images[selectedImage]}
-          alt={product.name}
-          className="w-full aspect-square object-cover rounded-xl border"
-        />
-        <div className="flex gap-2 mt-3 overflow-x-auto">
-          {product.images.map((img, index) => (
-            <button
-              key={img}
-              type="button"
-              onClick={() => setSelectedImage(index)}
-              className={`shrink-0 rounded-lg overflow-hidden border-2 ${
-                index === selectedImage ? "border-black" : "border-transparent"
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img}
-                alt={`${product.name} view ${index + 1}`}
-                className="w-20 h-20 object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      </div>
+            <ProductGallery
+        images={product.images}
+        name={product.name}
+        selected={selectedImage}
+        onSelect={setSelectedImage}
+      />
 
       <div className="space-y-5">
         <div>

@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
 import ProductDetails from "./ProductDetails";
 import SiteHeader from "../../SiteHeader";
+import PageNav from "../../PageNav";
 
 
 async function Details({ params }: { params: Promise<{ slug: string }> }) {
@@ -29,9 +30,15 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
             <SiteHeader />
 
       <section className="p-6 max-w-5xl mx-auto">
-        <Link href="/" className="underline">
-          ← All shoes
-        </Link>
+                <PageNav
+          backHref="/#shoes"
+          backLabel="Back to shoes"
+          crumbs={[
+            { label: "Home", href: "/" },
+            { label: "Shoes", href: "/#shoes" },
+            { label: product.name },
+          ]}
+        />
         <div className="mt-4">
           <ProductDetails product={product} />
         </div>
