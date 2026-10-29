@@ -13,21 +13,30 @@ type Product = {
   sizes: string[];
   images: string[];
   stock: number;
+  colors: { name: string; hex: string }[];
 };
 
 export default function ProductDetails({ product }: { product: Product }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
   const { addItem } = useCart();
 
   const priceText = `Rs. ${Number(product.price).toLocaleString()}`;
   const outOfStock = product.stock <= 0;
-
-    function handleAddToCart() {
+  const colors = product.colors ?? [];
+    
+  function handleAddToCart() {
     if (!selectedSize) {
       setCartMessage("Please select a size first.");
+      setTimeout(() => setCartMessage(""), 2500);
+      return;
+    }
+
+        if (colors.length > 0 && !selectedColor) {
+      setCartMessage("Please select a color first.");
       setTimeout(() => setCartMessage(""), 2500);
       return;
     }
@@ -39,6 +48,8 @@ export default function ProductDetails({ product }: { product: Product }) {
       price: Number(product.price),
       image: product.images[0],
       size: selectedSize,
+      color: selectedColor ?? "",
+      colorHex: colors.find((c) => c.name === selectedColor)?.hex ?? "",
       quantity: 1,
       maxStock: product.stock,
     });
@@ -151,6 +162,36 @@ export default function ProductDetails({ product }: { product: Product }) {
           </p>
         ) : (
           <p className="text-green-700 font-semibold">In stock</p>
+        )}
+
+                {colors.length > 0 && (
+          <div>
+            <p className="font-medium mb-2">
+              Select color
+              {selectedColor && (
+                <span className="font-normal text-gray-600">
+                  {" "}
+                  · {selectedColor}
+                </span>
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {colors.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  title={c.name}
+                  aria-label={c.name}
+                  onClick={() => setSelectedColor(c.name)}
+                  className={`color-swatch ${
+                    selectedColor === c.name ? "is-selected" : ""
+                  }`}
+                >
+                  <span className="color-dot" style={{ background: c.hex }} />
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         <div>

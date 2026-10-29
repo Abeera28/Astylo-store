@@ -16,6 +16,8 @@ type OrderItem = {
   quantity: number;
   price: number;
   image?: string;
+  color?: string | null;
+
 };
 
 async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -109,7 +111,8 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
               <div className="flex-1">
                 <p className="font-medium">{item.name}</p>
                 <p className="text-sm text-gray-600">
-                  Size {item.size} × {item.quantity}
+                  Size {item.size}
+                  {item.color ? ` · ${item.color}` : ""} × {item.quantity}
                 </p>
               </div>
               <p>Rs. {(item.price * item.quantity).toLocaleString()}</p>

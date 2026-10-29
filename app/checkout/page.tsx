@@ -222,6 +222,7 @@ export default function CheckoutPage() {
       p_items: items.map((i) => ({
         productId: i.productId,
         size: i.size,
+        color: i.color,
         quantity: i.quantity,
       })),
     });
@@ -395,7 +396,7 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               {items.map((item) => (
                 <div
-                  key={`${item.productId}-${item.size}`}
+                  key={`${item.productId}-${item.size}-${item.color}`}
                   className="flex items-center gap-3 border rounded-lg p-2"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -407,7 +408,8 @@ export default function CheckoutPage() {
                   <div className="flex-1">
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-gray-600">
-                      Size {item.size} × {item.quantity}
+                      Size {item.size}
+                      {item.color ? ` · ${item.color}` : ""} × {item.quantity}
                     </p>
                   </div>
                   <p>Rs. {(item.price * item.quantity).toLocaleString()}</p>

@@ -28,7 +28,7 @@ export default function CartPage() {
             <div className="space-y-3">
               {items.map((item) => (
                 <div
-                  key={`${item.productId}-${item.size}`}
+                  key={`${item.productId}-${item.size}-${item.color}-${item.colorHex}`}
                   className="flex flex-wrap items-center gap-4 border rounded-lg p-3"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -42,15 +42,25 @@ export default function CartPage() {
                     <Link href={`/shoes/${item.slug}`} className="font-semibold">
                       {item.name}
                     </Link>
-                    <p className="text-sm text-gray-600">Size: {item.size}</p>
-                    <p>Rs. {item.price.toLocaleString()}</p>
+                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                      Size: {item.size}
+                      {item.color && (
+                        <>
+                          <span
+                            className="color-dot"
+                            style={{ background: item.colorHex }}
+                          />
+                          {item.color}
+                        </>
+                      )}
+                    </p>                    <p>Rs. {item.price.toLocaleString()}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() =>
-                        setQuantity(item.productId, item.size, item.quantity - 1)
+                      setQuantity(item.productId, item.size, item.color, item.quantity - 1)
                       }
                       className="border rounded-lg w-9 h-9"
                     >
@@ -60,7 +70,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setQuantity(item.productId, item.size, item.quantity + 1)
+                      setQuantity(item.productId, item.size, item.color, item.quantity + 1)
                       }
                       className="border rounded-lg w-9 h-9"
                     >
@@ -70,7 +80,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => removeItem(item.productId, item.size)}
+                    onClick={() =>removeItem(item.productId, item.size, item.color)}
                     className="text-red-600 underline"
                   >
                     Remove

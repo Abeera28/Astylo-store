@@ -8,6 +8,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../../lib/supabase/client";
+import ColorPicker, { type ColorOption } from "./ColorPicker";
+
 
 const DEFAULT_SIZES = ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"];
 const MAX_IMAGES = 8;
@@ -24,6 +26,7 @@ type EditableProduct = {
   sizes: string[];
   images: string[];
   stock: number;
+  colors: ColorOption[];
 };
 
 function makeSlug(name: string) {
@@ -89,6 +92,7 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
     sortSizes(Array.from(new Set([...DEFAULT_SIZES, ...(product?.sizes ?? [])])))
   );
   const [sizes, setSizes] = useState<string[]>(product?.sizes ?? []);
+  const [colors, setColors] = useState<ColorOption[]>(product?.colors ?? []);
   const [newSize, setNewSize] = useState("");
   const [existing, setExisting] = useState<string[]>(product?.images ?? []);
   const [images, setImages] = useState<Preview[]>([]);
@@ -204,6 +208,7 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
         price: Number(price),
         stock: stockNumber,
         sizes: sortSizes(sizes),
+        colors,
         images: [...existing, ...newUrls],
       };
 
@@ -347,6 +352,7 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
           </button>
         </div>
       </div>
+          <ColorPicker value={colors} onChange={setColors} />
 
       <div>
         <label className="block font-medium mb-1">

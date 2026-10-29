@@ -18,6 +18,7 @@ type OrderItem = {
   quantity: number;
   price: number;
   image?: string;
+  color?: string | null;
 };
 
 async function Guard({
@@ -150,7 +151,9 @@ async function Guard({
                         />
                       )}
                       <p className="text-sm flex-1">
-                        {item.name} (size {item.size}) × {item.quantity}
+                        {item.name} (size {item.size}
+                        {item.color ? `, color ${item.color}` : ""}) ×{" "}
+                        {item.quantity}
                       </p>
                       <p className="text-sm">
                         Rs. {(item.price * item.quantity).toLocaleString()}

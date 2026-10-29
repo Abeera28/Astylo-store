@@ -1048,3 +1048,48 @@
     color: #fff;
   }
 }
+
+
+
+/* =====================================================
+   COLOR DOTS AND SWATCHES (added)
+   ===================================================== */
+.color-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  border-radius: 999px;
+}
+
+.color-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0.25rem;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.color-swatch .color-dot {
+  width: 100%;
+  height: 100%;
+}
+
+.color-swatch.is-selected {
+  border-color: var(--ink);
+}
+
+@media (hover: hover) {
+  .color-swatch:hover {
+    border-color: var(--color-gray-400);
+  }
+
+  .color-swatch.is-selected:hover {
+    border-color: var(--ink);
+  }
+}

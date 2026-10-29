@@ -15,6 +15,8 @@ export type CartItem = {
   price: number;
   image: string;
   size: string;
+  color: string;
+  colorHex: string;
   quantity: number;
   maxStock: number;
 };
@@ -25,17 +27,32 @@ type CartContextValue = {
   count: number;
   total: number;
   addItem: (item: CartItem) => boolean;
-  setQuantity: (productId: string, size: string, quantity: number) => void;
-  removeItem: (productId: string, size: string) => void;
+  setQuantity: (
+    productId: string,
+    size: string,
+    color: string,
+    quantity: number
+  ) => void;
+  removeItem: (productId: string, size: string, color: string) => void;
   clear: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "astylo-cart";
 
-function otherSizesQty(items: CartItem[], productId: string, size: string) {
+function isLine(i: CartItem, productId: string, size: string, color: string) {
+  return i.productId === productId && i.size === size && i.color === color;
+}
+
+// pairs of the same shoe that are on OTHER lines (other sizes or colors)
+function otherLinesQty(
+  items: CartItem[],
+  productId: string,
+  size: string,
+  color: string
+) {
   return items
-    .filter((i) => i.productId === productId && i.size !== size)
+    .filter((i) => i.productId === productId && !isLine(i, productId, size, color))
     .reduce((sum, i) => sum + i.quantity, 0);
 }
 
@@ -46,7 +63,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setItems(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved) as CartItem[];
+        setItems(
+          parsed.map((i) => ({
+            ...i,
+            color: i.color ?? "",
+            colorHex: i.colorHex ?? "",
+          }))
+        );
+      }
     } catch {
       // ignore broken saved data
     }
@@ -63,9 +89,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, ready]);
 
   function addItem(item: CartItem): boolean {
-    const others = otherSizesQty(items, item.productId, item.size);
-    const existing = items.find(
-      (i) => i.productId === item.productId && i.size === item.size
+    const others = otherLinesQty(items, item.productId, item.size, item.color);
+    const existing = items.find((i) =>
+      isLine(i, item.productId, item.size, item.color)
     );
     const current = existing?.quantity ?? 0;
     const allowed = Math.max(0, item.maxStock - others - current);
@@ -77,7 +103,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems(
         items.map((i) =>
           i === existing
-            ? { ...i, quantity: i.quantity + add, maxStock: item.maxStock, price: item.price }
+            ? {
+                ...i,
+                quantity: i.quantity + add,
+                maxStock: item.maxStock,
+                price: item.price,
+              }
             : i
         )
       );
@@ -87,14 +118,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return true;
   }
 
-  function setQuantity(productId: string, size: string, quantity: number) {
+  function setQuantity(
+    productId: string,
+    size: string,
+    color: string,
+    quantity: number
+  ) {
     setItems((prev) => {
-      const target = prev.find(
-        (i) => i.productId === productId && i.size === size
-      );
+      const target = prev.find((i) => isLine(i, productId, size, color));
       if (!target) return prev;
 
-      const others = otherSizesQty(prev, productId, size);
+      const others = otherLinesQty(prev, productId, size, color);
       const q = Math.min(quantity, target.maxStock - others);
 
       if (q <= 0) return prev.filter((i) => i !== target);
@@ -102,10 +136,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function removeItem(productId: string, size: string) {
-    setItems((prev) =>
-      prev.filter((i) => !(i.productId === productId && i.size === size))
-    );
+  function removeItem(productId: string, size: string, color: string) {
+    setItems((prev) => prev.filter((i) => !isLine(i, productId, size, color)));
   }
 
   function clear() {

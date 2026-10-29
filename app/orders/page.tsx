@@ -17,6 +17,8 @@ type OrderItem = {
   quantity: number;
   price: number;
   image?: string;
+  color?: string | null;
+
 };
 
 const STEPS = [
@@ -128,7 +130,8 @@ async function OrderList() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium leading-snug">{item.name}</p>
                     <p className="text-sm text-gray-500">
-                      Size {item.size} · Qty {item.quantity}
+                                            Size {item.size}
+                      {item.color ? ` · ${item.color}` : ""} · Qty {item.quantity}
                     </p>
                   </div>
                   <p className="text-sm font-semibold">

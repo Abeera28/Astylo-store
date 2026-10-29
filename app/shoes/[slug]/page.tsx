@@ -16,8 +16,7 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, name, slug, description, price, sizes, images, stock")
-    .eq("slug", slug)
+    .select("id, name, slug, description, price, sizes, images, stock, colors")    .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 

@@ -27,8 +27,7 @@ async function Guard({ params }: { params: Promise<{ id: string }> }) {
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, slug, name, description, price, sizes, images, stock")
-    .eq("id", id)
+    .select("id, slug, name, description, price, sizes, images, stock, colors")    .eq("id", id)
     .maybeSingle();
 
   if (!product) {
