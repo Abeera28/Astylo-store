@@ -1,12 +1,10 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
 import ProductDetails from "./ProductDetails";
 import SiteHeader from "../../SiteHeader";
 import PageNav from "../../PageNav";
-
 
 async function Details({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
@@ -16,7 +14,10 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
 
   const { data: product } = await supabase
     .from("products")
-    .select("id, name, slug, description, price, sizes, images, stock, colors")    .eq("slug", slug)
+    .select(
+      "id, name, slug, description, price, sizes, images, stock, colors, unavailable_colors"
+    )
+    .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 
@@ -26,10 +27,10 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
 
   return (
     <main className="min-h-screen">
-            <SiteHeader />
+      <SiteHeader />
 
       <section className="p-6 max-w-5xl mx-auto">
-                <PageNav
+        <PageNav
           backHref="/#shoes"
           backLabel="Back to shoes"
           crumbs={[

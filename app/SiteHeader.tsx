@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "../lib/supabase/client";
@@ -36,7 +36,8 @@ const BANNERS: Record<string, { eyebrow: string; title: string; text: string }> 
 };
 
 export default function SiteHeader() {
-  const { count } = useCart();
+    const { count: cartCount, ready } = useCart();
+  const count = ready ? cartCount : 0;
   const router = useRouter();
   const pathname = usePathname();
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);

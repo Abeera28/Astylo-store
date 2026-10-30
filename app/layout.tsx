@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "../lib/cart";
@@ -25,10 +26,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${playfair.variable}`}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${dmSans.variable} ${playfair.variable}`}
+    >
       <body>
         <CartProvider>
-          <ShopFrame>{children}</ShopFrame>
+          <Suspense fallback={null}>
+            <ShopFrame>{children}</ShopFrame>
+          </Suspense>
         </CartProvider>
       </body>
     </html>

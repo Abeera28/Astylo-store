@@ -2,20 +2,37 @@
 
 import {
   useState,
-  type FormEvent,
   type ChangeEvent,
   type DragEvent,
+  type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "../../../../lib/supabase/client";
 import ColorPicker, { type ColorOption } from "./ColorPicker";
-
+import SizeColorMatrix from "./SizeColorMatrix";
 
 const DEFAULT_SIZES = ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"];
 const MAX_IMAGES = 8;
 const ACCEPT = "image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif";
 
-type Preview = { file: File; url: string };
+type Photo = { id: string; url: string; file?: File };
 
 type EditableProduct = {
   id: string;
@@ -27,6 +44,7 @@ type EditableProduct = {
   images: string[];
   stock: number;
   colors: ColorOption[];
+  unavailable_colors: Record<string, string[]>;
 };
 
 function makeSlug(name: string) {
@@ -37,6 +55,10 @@ function makeSlug(name: string) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "shoe";
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function newId() {
+  return `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function sortSizes(list: string[]) {
@@ -54,6 +76,20 @@ function sortSizes(list: string[]) {
 
 function pathFromUrl(url: string) {
   return url.split("/shoe-images/")[1];
+}
+
+function cleanUnavailable(
+  sizes: string[],
+  colors: ColorOption[],
+  unavailable: Record<string, string[]>
+) {
+  const names = colors.map((c) => c.name);
+  const out: Record<string, string[]> = {};
+  for (const size of sizes) {
+    const off = (unavailable[size] ?? []).filter((n) => names.includes(n));
+    if (off.length > 0) out[size] = off;
+  }
+  return out;
 }
 
 async function resizeImage(file: File): Promise<Blob> {
@@ -82,6 +118,76 @@ async function resizeImage(file: File): Promise<Blob> {
   });
 }
 
+function PhotoTile({
+  photo,
+  index,
+  onRemove,
+}: {
+  photo: Photo;
+  index: number;
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo.url}
+        alt={`Photo ${index + 1}`}
+        className="w-full h-28 object-cover rounded-lg border"
+      />
+
+      <span className="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">
+        {index === 0 ? "Main" : index + 1}
+      </span>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove photo ${index + 1}`}
+        className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded"
+      >
+        X
+      </button>
+
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        aria-label={`Drag photo ${index + 1} to change its position`}
+        className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-1 rounded-md bg-black/70 py-1.5 text-xs font-semibold text-white touch-none cursor-grab active:cursor-grabbing"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="8" cy="6" r="2" />
+          <circle cx="16" cy="6" r="2" />
+          <circle cx="8" cy="12" r="2" />
+          <circle cx="16" cy="12" r="2" />
+          <circle cx="8" cy="18" r="2" />
+          <circle cx="16" cy="18" r="2" />
+        </svg>
+        Drag
+      </button>
+    </div>
+  );
+}
+
 export default function ProductForm({ product }: { product?: EditableProduct }) {
   const router = useRouter();
   const [name, setName] = useState(product?.name ?? "");
@@ -92,31 +198,57 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
     sortSizes(Array.from(new Set([...DEFAULT_SIZES, ...(product?.sizes ?? [])])))
   );
   const [sizes, setSizes] = useState<string[]>(product?.sizes ?? []);
-  const [colors, setColors] = useState<ColorOption[]>(product?.colors ?? []);
   const [newSize, setNewSize] = useState("");
-  const [existing, setExisting] = useState<string[]>(product?.images ?? []);
-  const [images, setImages] = useState<Preview[]>([]);
+  const [colors, setColors] = useState<ColorOption[]>(product?.colors ?? []);
+  const [unavailable, setUnavailable] = useState<Record<string, string[]>>(
+    product?.unavailable_colors ?? {}
+  );
+  const [photos, setPhotos] = useState<Photo[]>(() =>
+    (product?.images ?? []).map((url) => ({ id: url, url }))
+  );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function resetForm() {
+    photos.forEach((p) => {
+      if (p.file) URL.revokeObjectURL(p.url);
+    });
+    setName("");
+    setDescription("");
+    setPrice("");
+    setStock("");
+    setSizeOptions(DEFAULT_SIZES);
+    setSizes([]);
+    setNewSize("");
+    setColors([]);
+    setUnavailable({});
+    setPhotos([]);
+    setError("");
+  }
+
   async function addFiles(fileList: File[]) {
     setError("");
-    const good: Preview[] = [];
+    const good: Photo[] = [];
     const bad: string[] = [];
 
     for (const file of fileList) {
       try {
         const bitmap = await createImageBitmap(file);
         bitmap.close();
-        good.push({ file, url: URL.createObjectURL(file) });
+        good.push({ id: newId(), url: URL.createObjectURL(file), file });
       } catch {
         bad.push(file.name);
       }
     }
 
-    const room = MAX_IMAGES - existing.length - images.length;
-    setImages((prev) => [...prev, ...good].slice(0, MAX_IMAGES - existing.length));
+    const room = MAX_IMAGES - photos.length;
+    setPhotos((prev) => [...prev, ...good].slice(0, MAX_IMAGES));
 
     if (bad.length > 0) {
       setError(
@@ -137,6 +269,26 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
     e.preventDefault();
     setDragging(false);
     addFiles(Array.from(e.dataTransfer.files));
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setPhotos((items) => {
+      const from = items.findIndex((p) => p.id === active.id);
+      const to = items.findIndex((p) => p.id === over.id);
+      if (from < 0 || to < 0) return items;
+      return arrayMove(items, from, to);
+    });
+  }
+
+  function removePhoto(id: string) {
+    setPhotos((items) => {
+      const gone = items.find((p) => p.id === id);
+      if (gone?.file) URL.revokeObjectURL(gone.url);
+      return items.filter((p) => p.id !== id);
+    });
   }
 
   function toggleSize(size: string) {
@@ -176,8 +328,19 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
     if (stock === "" || !Number.isInteger(stockNumber) || stockNumber < 0)
       return setError("Please enter how many pairs are in stock (0 or more).");
     if (sizes.length === 0) return setError("Please select at least one size.");
-    if (existing.length + images.length === 0)
-      return setError("Please add at least one photo.");
+    if (photos.length === 0) return setError("Please add at least one photo.");
+
+    const cleanOff = cleanUnavailable(sizes, colors, unavailable);
+    if (colors.length > 0) {
+      const blockedSize = sizes.find(
+        (s) => (cleanOff[s]?.length ?? 0) >= colors.length
+      );
+      if (blockedSize) {
+        return setError(
+          `Size ${blockedSize} has no available color. Turn on a color for it, or remove the size.`
+        );
+      }
+    }
 
     setSaving(true);
     const supabase = createClient();
@@ -185,10 +348,17 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
     const uploadedPaths: string[] = [];
 
     try {
-      const newUrls: string[] = [];
+      const finalUrls: string[] = [];
 
-      for (let i = 0; i < images.length; i++) {
-        const blob = await resizeImage(images[i].file);
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+
+        if (!photo.file) {
+          finalUrls.push(photo.url);
+          continue;
+        }
+
+        const blob = await resizeImage(photo.file);
         const path = `${slug}/${Date.now()}-${i + 1}.jpg`;
 
         const { error: uploadError } = await supabase.storage
@@ -199,7 +369,7 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
 
         uploadedPaths.push(path);
         const { data } = supabase.storage.from("shoe-images").getPublicUrl(path);
-        newUrls.push(data.publicUrl);
+        finalUrls.push(data.publicUrl);
       }
 
       const values = {
@@ -209,7 +379,8 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
         stock: stockNumber,
         sizes: sortSizes(sizes),
         colors,
-        images: [...existing, ...newUrls],
+        unavailable_colors: colors.length > 0 ? cleanOff : {},
+        images: finalUrls,
       };
 
       if (product) {
@@ -224,7 +395,7 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
           throw new Error("Could not save the changes.");
 
         const removed = product.images
-          .filter((url) => !existing.includes(url))
+          .filter((url) => !finalUrls.includes(url))
           .map(pathFromUrl)
           .filter((p): p is string => Boolean(p));
 
@@ -237,6 +408,9 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
           .insert({ ...values, slug });
 
         if (insertError) throw new Error(insertError.message);
+
+        // clear everything so the next "Add new shoe" starts empty
+        resetForm();
       }
 
       router.push("/admin");
@@ -352,7 +526,15 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
           </button>
         </div>
       </div>
-          <ColorPicker value={colors} onChange={setColors} />
+
+      <ColorPicker value={colors} onChange={setColors} />
+
+      <SizeColorMatrix
+        sizes={sortSizes(sizes)}
+        colors={colors}
+        unavailable={unavailable}
+        onChange={setUnavailable}
+      />
 
       <div>
         <label className="block font-medium mb-1">
@@ -386,57 +568,40 @@ export default function ProductForm({ product }: { product?: EditableProduct }) 
             className="hidden"
           />
           <p className="mt-3 text-sm text-gray-600">
-            {existing.length + images.length} of {MAX_IMAGES} photos added
+            {photos.length} of {MAX_IMAGES} photos added
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mt-3">
-          {existing.map((url, index) => (
-            <div key={url} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Photo ${index + 1}`}
-                className="w-full h-28 object-cover rounded-lg border"
-              />
-              {index === 0 && (
-                <span className="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">
-                  Main
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => setExisting(existing.filter((_, i) => i !== index))}
-                className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded"
-              >
-                X
-              </button>
-            </div>
-          ))}
+        {photos.length > 1 && (
+          <p className="mt-3 text-sm text-gray-600">
+            To change the order, press and hold the <strong>Drag</strong> bar
+            on a photo and move it to a new place. The photo marked{" "}
+            <strong>Main</strong> is shown first to customers.
+          </p>
+        )}
 
-          {images.map((img, index) => (
-            <div key={img.url} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.url}
-                alt={`New photo ${index + 1}`}
-                className="w-full h-28 object-cover rounded-lg border"
-              />
-              {existing.length === 0 && index === 0 && (
-                <span className="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">
-                  Main
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => setImages(images.filter((_, i) => i !== index))}
-                className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded"
-              >
-                X
-              </button>
+        <DndContext
+          id="photo-sorter"
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={photos.map((p) => p.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {photos.map((photo, index) => (
+                <PhotoTile
+                  key={photo.id}
+                  photo={photo}
+                  index={index}
+                  onRemove={() => removePhoto(photo.id)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {error && <p className="text-red-600">{error}</p>}

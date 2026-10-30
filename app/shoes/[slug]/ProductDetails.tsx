@@ -14,6 +14,7 @@ type Product = {
   images: string[];
   stock: number;
   colors: { name: string; hex: string }[];
+  unavailable_colors: Record<string, string[]> | null;
 };
 
 export default function ProductDetails({ product }: { product: Product }) {
@@ -22,12 +23,49 @@ export default function ProductDetails({ product }: { product: Product }) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
+  const [colorNote, setColorNote] = useState("");
   const { addItem } = useCart();
 
+  const colors = product.colors ?? [];
+  const blockedBySize = product.unavailable_colors ?? {};
   const priceText = `Rs. ${Number(product.price).toLocaleString()}`;
   const outOfStock = product.stock <= 0;
-  const colors = product.colors ?? [];
-    
+
+  function colorsForSize(size: string) {
+    const blocked = blockedBySize[size] ?? [];
+    return colors.filter((c) => !blocked.includes(c.name));
+  }
+
+  function sizeHasNoColor(size: string) {
+    return colors.length > 0 && colorsForSize(size).length === 0;
+  }
+
+  function colorBlocked(colorName: string) {
+    if (!selectedSize) return false;
+    return !colorsForSize(selectedSize).some((c) => c.name === colorName);
+  }
+
+  function chooseSize(size: string) {
+    setSelectedSize(size);
+
+    if (
+      selectedColor &&
+      !colorsForSize(size).some((c) => c.name === selectedColor)
+    ) {
+      setColorNote(
+        `${selectedColor} is not available in size ${size}. Please choose another color.`
+      );
+      setSelectedColor(null);
+    } else {
+      setColorNote("");
+    }
+  }
+
+  function chooseColor(colorName: string) {
+    setSelectedColor(colorName);
+    setColorNote("");
+  }
+
   function handleAddToCart() {
     if (!selectedSize) {
       setCartMessage("Please select a size first.");
@@ -35,7 +73,7 @@ export default function ProductDetails({ product }: { product: Product }) {
       return;
     }
 
-        if (colors.length > 0 && !selectedColor) {
+    if (colors.length > 0 && !selectedColor) {
       setCartMessage("Please select a color first.");
       setTimeout(() => setCartMessage(""), 2500);
       return;
@@ -116,7 +154,7 @@ export default function ProductDetails({ product }: { product: Product }) {
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
-            <ProductGallery
+      <ProductGallery
         images={product.images}
         name={product.name}
         selected={selectedImage}
@@ -164,36 +202,6 @@ export default function ProductDetails({ product }: { product: Product }) {
           <p className="text-green-700 font-semibold">In stock</p>
         )}
 
-                {colors.length > 0 && (
-          <div>
-            <p className="font-medium mb-2">
-              Select color
-              {selectedColor && (
-                <span className="font-normal text-gray-600">
-                  {" "}
-                  · {selectedColor}
-                </span>
-              )}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((c) => (
-                <button
-                  key={c.name}
-                  type="button"
-                  title={c.name}
-                  aria-label={c.name}
-                  onClick={() => setSelectedColor(c.name)}
-                  className={`color-swatch ${
-                    selectedColor === c.name ? "is-selected" : ""
-                  }`}
-                >
-                  <span className="color-dot" style={{ background: c.hex }} />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div>
           <p className="font-medium mb-2">Select size</p>
           <div className="flex flex-wrap gap-2">
@@ -201,8 +209,12 @@ export default function ProductDetails({ product }: { product: Product }) {
               <button
                 key={size}
                 type="button"
-                onClick={() => setSelectedSize(size)}
-                className={`px-4 py-2 rounded-lg border ${
+                disabled={sizeHasNoColor(size)}
+                title={
+                  sizeHasNoColor(size) ? "Not available right now" : undefined
+                }
+                onClick={() => chooseSize(size)}
+                className={`px-4 py-2 rounded-lg border disabled:opacity-40 disabled:line-through ${
                   selectedSize === size
                     ? "bg-black text-white border-black"
                     : "bg-white text-black border-gray-400"
@@ -214,7 +226,52 @@ export default function ProductDetails({ product }: { product: Product }) {
           </div>
         </div>
 
-                <div>
+        {colors.length > 0 && (
+          <div>
+            <p className="font-medium mb-2">
+              Select color
+              {selectedColor && (
+                <span className="font-normal text-gray-600">
+                  {" "}
+                  · {selectedColor}
+                </span>
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {colors.map((c) => {
+                const blocked = colorBlocked(c.name);
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    disabled={blocked}
+                    title={
+                      blocked
+                        ? `${c.name} is not available in size ${selectedSize}`
+                        : c.name
+                    }
+                    aria-label={c.name}
+                    onClick={() => chooseColor(c.name)}
+                    className={`color-swatch ${
+                      selectedColor === c.name ? "is-selected" : ""
+                    }`}
+                  >
+                    <span className="color-dot" style={{ background: c.hex }} />
+                  </button>
+                );
+              })}
+            </div>
+            {colorNote ? (
+              <p className="mt-2 text-sm text-orange-600">{colorNote}</p>
+            ) : !selectedSize ? (
+              <p className="mt-2 text-xs text-gray-500">
+                Choose a size to see which colors are available in it.
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        <div>
           <button
             type="button"
             onClick={handleAddToCart}
