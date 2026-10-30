@@ -3,21 +3,17 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import SiteHeader from "../../SiteHeader";
-import PaymentDetails, {
-  METHOD_LABELS,
-  type PayMethod,
-  type ShopSettings,
-} from "../../PaymentDetails";
+import PaymentInstructions from "../../PaymentInstructions";
+import type { PayMethod, ShopSettings } from "../../PaymentDetails";
 import { createClient } from "../../../lib/supabase/server";
 
 type OrderItem = {
   name: string;
   size: string;
+  color?: string | null;
   quantity: number;
   price: number;
   image?: string;
-  color?: string | null;
-
 };
 
 async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -37,7 +33,7 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, customer_name, phone, address, city, items, total, payment_method, status, created_at"
+      "id, customer_name, phone, address, city, items, total, payment_method, payment_status, status, created_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -56,9 +52,7 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
   const items = order.items as OrderItem[];
   const orderNumber = order.id.slice(0, 8).toUpperCase();
   const method = order.payment_method as PayMethod;
-  const whatsappText = encodeURIComponent(
-    `Hello, I placed order #${orderNumber}. Here is my payment screenshot.`
-  );
+  const isWallet = method === "jazzcash" || method === "easypaisa";
 
   return (
     <main className="min-h-screen">
@@ -66,32 +60,31 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
 
       <section className="p-6 max-w-2xl mx-auto space-y-5">
         <div>
-          <h1 className="text-2xl font-bold">Thank you! Your order is placed.</h1>
+          <h1 className="text-2xl font-bold">
+            Thank you! Your order is placed.
+          </h1>
           <p className="text-gray-600 mt-1">Order number: #{orderNumber}</p>
         </div>
 
-        {method === "cod" ? (
+        {method === "cod" && (
           <p className="border rounded-lg p-4 bg-gray-50 text-sm">
             You will pay in cash when your order is delivered.
           </p>
-        ) : (
-          <div className="border rounded-lg p-4 bg-gray-50 text-sm space-y-3">
-            <p className="font-medium">
-              Complete your payment ({METHOD_LABELS[method]})
-            </p>
-            <PaymentDetails method={method} settings={settings} />
-            <p>After paying, send the screenshot with your order number:</p>
-            {settings?.whatsapp && (
-              <a
-                href={`https://wa.me/${settings.whatsapp}?text=${whatsappText}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block bg-green-600 text-white rounded-lg px-4 py-2"
-              >
-                Send screenshot on WhatsApp
-              </a>
-            )}
-          </div>
+        )}
+
+        {isWallet && order.payment_status === "paid" && (
+          <p className="border rounded-lg p-4 bg-green-50 text-sm text-green-800">
+            Payment received. Thank you!
+          </p>
+        )}
+
+        {isWallet && order.payment_status !== "paid" && (
+          <PaymentInstructions
+            method={method}
+            settings={settings}
+            amount={Number(order.total)}
+            orderNumber={orderNumber}
+          />
         )}
 
         <div className="space-y-3">
@@ -133,9 +126,14 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
           </p>
         </div>
 
-        <Link href="/" className="underline">
-          Continue shopping
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/orders" className="btn-outline">
+            View my orders
+          </Link>
+          <Link href="/#shoes" className="btn-solid">
+            Continue shopping
+          </Link>
+        </div>
       </section>
     </main>
   );

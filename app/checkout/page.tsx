@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import PaymentInstructions from "../PaymentInstructions";
 import { useRouter } from "next/navigation";
 import SiteHeader from "../SiteHeader";
 import {
@@ -362,15 +363,14 @@ export default function CheckoutPage() {
               </label>
             ))}
 
-            {payment !== "cod" && (
-              <div className="border rounded-lg p-3 bg-gray-50 text-sm space-y-2">
-                <p className="font-medium">Pay with {METHOD_LABELS[payment]}</p>
-                <p className="text-gray-600">
-                  After you place your order, the account details are shown on
-                  the next page. Send the payment screenshot on WhatsApp and we
-                  confirm your order.
-                </p>
-              </div>
+                        {payment !== "cod" && (
+                          <PaymentInstructions
+                method={payment}
+                settings={settings}
+                amount={total}
+                customerName={name}
+                customerPhone={phone}
+              />
             )}
 
             {formError && (
