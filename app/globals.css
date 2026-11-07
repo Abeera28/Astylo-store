@@ -1114,3 +1114,29 @@
   background: var(--ink);
   transform: rotate(-45deg);
 }
+
+/* =====================================================
+   COMPACT HOME BANNER ON PHONES (added)
+   ===================================================== */
+@media (max-width: 767px) {
+  .hero {
+    border-radius: 1.25rem;
+  }
+
+  .hero .hero-title {
+    font-size: clamp(1.65rem, 8.2vw, 2.25rem);
+    line-height: 1.08;
+  }
+
+  .hero .hero-art {
+    max-width: 9.5rem;
+    border-radius: 5rem 5rem 0.9rem 0.9rem;
+    box-shadow: 0 10px 24px -14px rgb(74 40 45 / 0.4);
+  }
+
+  .hero .btn-solid {
+    min-height: 2.6rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.85rem;
+  }
+}

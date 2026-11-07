@@ -9,30 +9,23 @@ async function HeroArt() {
   await connection();
 
   const supabase = await createClient();
-  const { data: latest } = await supabase
-    .from("products")
-    .select("name, slug, price, images")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
+  const { data } = await supabase
+    .from("shop_info")
+    .select("hero_image_url")
+    .eq("id", 1)
     .maybeSingle();
 
-  if (!latest?.images?.[0]) {
+  const url = data?.hero_image_url;
+
+  if (!url) {
     return <div className="hero-art hero-art-empty" />;
   }
 
   return (
-    <Link href={`/shoes/${latest.slug}`} className="hero-art">
+    <a href="#shoes" className="hero-art">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={latest.images[0]} alt={latest.name} />
-      <div className="hero-tag">
-        <p className="eyebrow">Just in</p>
-        <p className="font-serif text-lg leading-tight">{latest.name}</p>
-        <p className="price text-sm">
-          Rs. {Number(latest.price).toLocaleString()}
-        </p>
-      </div>
-    </Link>
+      <img src={url} alt="Astylo new collection" />
+    </a>
   );
 }
 
@@ -78,7 +71,9 @@ async function ProductGrid() {
             </div>
             <div className="p-3 md:p-4">
               <p className="font-medium leading-snug">{p.name}</p>
-              <p className="price mt-1">Rs. {Number(p.price).toLocaleString()}</p>
+              <p className="price mt-1">
+                Rs. {Number(p.price).toLocaleString("en-US")}
+              </p>
             </div>
           </Link>
         );
@@ -99,23 +94,23 @@ export default function Home() {
       <div className="topbar">Cash on Delivery available on every order</div>
       <SiteHeader />
 
-      <section className="page-wrap pt-6 md:pt-8">
+      <section className="page-wrap pt-4 md:pt-8">
         <div className="hero">
-          <div className="grid md:grid-cols-2 items-center gap-8 px-6 py-10 md:px-14 md:py-16">
+          <div className="grid grid-cols-[1.25fr_1fr] items-center gap-3 px-4 py-5 md:grid-cols-2 md:gap-8 md:px-14 md:py-16">
             <div>
-              <p className="eyebrow mb-4">New collection</p>
+              <p className="eyebrow mb-2 md:mb-4">New collection</p>
               <h1 className="hero-title">
                 Elegance in <em>every step.</em>
               </h1>
-              <p className="mt-5 max-w-md text-gray-700">
+              <p className="mt-5 hidden max-w-md text-gray-700 md:block">
                 Heels and flats made to be noticed. Choose your size, add to
                 cart, and order in a few taps.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-8">
                 <a href="#shoes" className="btn-solid">
                   Shop the collection
                 </a>
-                <Link href="/orders" className="btn-outline">
+                <Link href="/orders" className="btn-outline hidden md:inline-flex">
                   Track my order
                 </Link>
               </div>
@@ -128,8 +123,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="page-wrap mt-6">
-        <div className="trust grid sm:grid-cols-3 gap-4 p-5">
+      <section className="page-wrap mt-6 hidden md:block">
+        <div className="trust grid gap-4 p-5 sm:grid-cols-3">
           {TRUST.map(([icon, title, text]) => (
             <div key={title} className="flex items-center gap-3">
               <span className="trust-icon">{icon}</span>
@@ -142,17 +137,15 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="shoes" className="page-wrap py-14 scroll-mt-24">
-        <p className="eyebrow mb-2">Our collection</p>
-        <h2 className="text-3xl md:text-5xl mb-8">Shop all shoes</h2>
+      <section id="shoes" className="page-wrap scroll-mt-20 py-8 md:scroll-mt-24 md:py-14">
+        <p className="eyebrow mb-1 md:mb-2">Our collection</p>
+        <h2 className="mb-4 text-2xl md:mb-8 md:text-5xl">Shop all shoes</h2>
         <Suspense fallback={<p className="text-gray-600">Loading shoes...</p>}>
           <ProductGrid />
         </Suspense>
       </section>
-       <SiteFooter />
 
-      
-  
+      <SiteFooter />
     </main>
   );
 }
