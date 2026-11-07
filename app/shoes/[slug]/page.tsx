@@ -1,8 +1,9 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import type { Metadata } from "next";
-import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { createClient } from "../../../lib/supabase/server";
 import ProductDetails from "./ProductDetails";
 import SiteHeader from "../../SiteHeader";
@@ -27,6 +28,15 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
     notFound();
   }
 
+  // other shoes, newest first (not the one being viewed)
+  const { data: others } = await supabase
+    .from("products")
+    .select("id, name, slug, price, images, stock")
+    .eq("is_active", true)
+    .neq("id", product.id)
+    .order("created_at", { ascending: false })
+    .limit(8);
+
   return (
     <main className="min-h-screen">
       <SiteHeader />
@@ -45,6 +55,59 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
           <ProductDetails product={product} />
         </div>
       </section>
+
+      {others && others.length > 0 && (
+        <section className="page-wrap pt-6 pb-12">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow mb-1">More to love</p>
+              <h2 className="text-2xl md:text-4xl">You may also like</h2>
+            </div>
+            <Link href="/#shoes" className="btn-outline">
+              View all shoes
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            {others.map((p) => {
+              const soldOut = p.stock <= 0;
+
+              return (
+                <Link
+                  key={p.id}
+                  href={`/shoes/${p.slug}`}
+                  className="product-card block"
+                >
+                  <div className="product-media">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.images?.[0] ?? ""}
+                      alt={p.name}
+                      className={`w-full h-full object-cover ${
+                        soldOut ? "grayscale opacity-60" : ""
+                      }`}
+                    />
+                    {soldOut && (
+                      <span className="badge badge-dark">Sold out</span>
+                    )}
+                    {!soldOut && p.stock <= 3 && (
+                      <span className="badge badge-accent">
+                        Only {p.stock} left
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3 md:p-4">
+                    <p className="font-medium leading-snug">{p.name}</p>
+                    <p className="price mt-1">
+                      Rs. {Number(p.price).toLocaleString("en-US")}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

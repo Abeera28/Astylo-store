@@ -21,6 +21,35 @@ type OrderItem = {
   color?: string | null;
 };
 
+function customerMessage(order: {
+  id: string;
+  customer_name: string;
+  total: number | string;
+  status: string;
+  payment_method: string;
+  payment_status: string;
+}) {
+  const number = order.id.slice(0, 8).toUpperCase();
+  const total = `Rs. ${Number(order.total).toLocaleString("en-US")}`;
+  const name = order.customer_name.split(" ")[0];
+  const start = `Hello ${name}, this is Astylo about your order #${number} (${total}).`;
+
+  switch (order.status) {
+    case "confirmed":
+      return `${start} Your order is confirmed and we are getting it ready for delivery.`;
+    case "shipped":
+      return order.payment_method === "cod" && order.payment_status !== "paid"
+        ? `${start} Your order has been shipped. Please keep ${total} ready for Cash on Delivery.`
+        : `${start} Your order has been shipped and will reach you soon.`;
+    case "delivered":
+      return `${start} Your order has been delivered. Thank you for shopping with Astylo!`;
+    case "cancelled":
+      return `${start} Your order has been cancelled. Please contact us if you have any questions.`;
+    default:
+      return `${start} We have received your order and will confirm it shortly.`;
+  }
+}
+
 async function Guard({
   searchParams,
 }: {
@@ -126,8 +155,9 @@ async function Guard({
                     </a>
                     {" · "}
                     <a
-                      href={`https://wa.me/${whatsapp}`}
-                      target="_blank"
+                      href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(
+                        customerMessage(order)
+                      )}`}                      target="_blank"
                       rel="noreferrer"
                       className="underline"
                     >
