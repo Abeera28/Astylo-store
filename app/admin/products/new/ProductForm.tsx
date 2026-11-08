@@ -94,7 +94,7 @@ function cleanUnavailable(
 
 async function resizeImage(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
-  const maxSize = 1200;
+  const maxSize = 900;
   const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
 
   const canvas = document.createElement("canvas");
@@ -113,7 +113,7 @@ async function resizeImage(file: File): Promise<Blob> {
       (blob) =>
         blob ? resolve(blob) : reject(new Error("Could not process the image")),
       "image/jpeg",
-      0.8
+      0.72
     );
   });
 }

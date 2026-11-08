@@ -81,7 +81,9 @@ async function Details({ params }: { params: Promise<{ slug: string }> }) {
                   <div className="product-media">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={p.images?.[0] ?? ""}
+                     src={p.images?.[0] ?? ""}
+loading="lazy"
+decoding="async"
                       alt={p.name}
                       className={`w-full h-full object-cover ${
                         soldOut ? "grayscale opacity-60" : ""

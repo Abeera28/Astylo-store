@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactElement } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { createClient } from "../lib/supabase/server";
@@ -24,7 +24,7 @@ async function HeroArt() {
   return (
     <a href="#shoes" className="hero-art">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="Astylo new collection" />
+      <img src={url} alt="Astylo new collection" fetchPriority="high" />
     </a>
   );
 }
@@ -59,6 +59,8 @@ async function ProductGrid() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={p.images?.[0]}
+loading="lazy"
+decoding="async"
                 alt={p.name}
                 className={`w-full h-full object-cover ${
                   soldOut ? "grayscale opacity-60" : ""
@@ -82,12 +84,47 @@ async function ProductGrid() {
   );
 }
 
-const TRUST = [
-  ["✓", "Cash on Delivery", "Pay when your shoes arrive"],
-  ["✓", "Easy checkout", "Order in a few taps"],
-  ["✓", "Track your order", "See every step in My orders"],
-];
+const SVG_PROPS = {
+  width: 30,
+  height: 30,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.5,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
 
+const ICONS: Record<string, ReactElement> = {
+  truck: (
+    <svg {...SVG_PROPS} aria-hidden="true">
+      <path d="M3 7h11v9H3z" />
+      <path d="M14 10h4l3 3v3h-7z" />
+      <circle cx="7" cy="18" r="1.8" />
+      <circle cx="17" cy="18" r="1.8" />
+    </svg>
+  ),
+  shield: (
+    <svg {...SVG_PROPS} aria-hidden="true">
+      <path d="M12 3l7 3v5c0 4.5-3 7.8-7 10-4-2.2-7-5.5-7-10V6z" />
+      <path d="M8.5 12l2.5 2.5 4.5-5" />
+    </svg>
+  ),
+  support: (
+    <svg {...SVG_PROPS} aria-hidden="true">
+      <path d="M5 13v-1a7 7 0 0 1 14 0v1" />
+      <rect x="3.5" y="13" width="3.5" height="5" rx="1.5" />
+      <rect x="17" y="13" width="3.5" height="5" rx="1.5" />
+      <path d="M19 18c0 2-2 3-5 3" />
+    </svg>
+  ),
+};
+
+const TRUST = [
+  ["truck", "Cash on Delivery", "Pay when your shoes arrive"],
+  ["shield", "Easy checkout", "Order in a few taps"],
+  ["support", "Track your order", "See every step in My orders"],
+];
 export default function Home() {
   return (
     <main className="min-h-screen">
@@ -127,7 +164,7 @@ export default function Home() {
         <div className="trust grid gap-4 p-5 sm:grid-cols-3">
           {TRUST.map(([icon, title, text]) => (
             <div key={title} className="flex items-center gap-3">
-              <span className="trust-icon">{icon}</span>
+             <span className="trust-icon">{ICONS[icon]}</span>
               <div>
                 <p className="font-semibold text-sm">{title}</p>
                 <p className="text-xs text-gray-600">{text}</p>
