@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
+import GoogleButton from "../../GoogleButton";
+
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -40,7 +42,14 @@ export default function AdminLogin() {
         className="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4"
       >
         <h1 className="text-2xl font-bold text-black">Admin Login</h1>
+        <GoogleButton next="/admin" label="Sign in with Google" />
 
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <span className="h-px flex-1 bg-gray-200" />
+          or use your password
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+        
         <input
           type="email"
           placeholder="Email"

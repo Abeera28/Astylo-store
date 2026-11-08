@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
+import GoogleButton from "../GoogleButton";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -89,7 +90,14 @@ export default function AuthForm() {
               : "Create an account to place your order. Your cart will be waiting."}
           </p>
         )}
+        <GoogleButton next={next} showError={params.get("error") === "google"} />
 
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <span className="h-px flex-1 bg-gray-200" />
+          or use your email
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+        
         {mode === "signup" && (
           <input
             value={fullName}
