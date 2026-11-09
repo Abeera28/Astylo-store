@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import AdminShell from "./AdminShell";
 
 export const metadata: Metadata = {
-  title: "Admin | Astylo",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 

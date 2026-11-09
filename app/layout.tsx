@@ -12,15 +12,32 @@ const dmSans = DM_Sans({
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
+  style: ["normal", "italic"],
   subsets: ["latin"],
 });
 
+function safeSiteUrl() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
-  ),
-  title: "Astylo",
-  description: "Astylo ladies shoes and heels",
+  metadataBase: safeSiteUrl(),
+  title: {
+    default: "Astylo Shoes | Ladies Shoes & Heels Collection",
+    template: "%s | Astylo Shoes",
+  },
+  description:
+    "Astylo Shoes: ladies heels, flats and sandals. Choose your size and order online with Cash on Delivery.",
+  applicationName: "Astylo Shoes",
+  openGraph: {
+    siteName: "Astylo Shoes",
+    type: "website",
+    locale: "en_PK",
+  },
 };
 
 export default function RootLayout({

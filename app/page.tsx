@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { createClient } from "../lib/supabase/server";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
+import type { Metadata } from "next";
 
 async function HeroArt() {
   await connection();
@@ -125,9 +126,44 @@ const TRUST = [
   ["shield", "Easy checkout", "Order in a few taps"],
   ["support", "Track your order", "See every step in My orders"],
 ];
+
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+).replace(/\/$/, "");
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: "Astylo Shoes",
+      alternateName: ["Astylo", "Astylo Shoes Collection"],
+      url: `${SITE_URL}/`,
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Astylo Shoes",
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/logo.svg`,
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <main className="min-h-screen">
+            <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="topbar">Cash on Delivery available on every order</div>
       <SiteHeader />
 

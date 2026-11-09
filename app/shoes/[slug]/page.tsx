@@ -9,6 +9,7 @@ import ProductDetails from "./ProductDetails";
 import SiteHeader from "../../SiteHeader";
 import PageNav from "../../PageNav";
 
+
 async function Details({ params }: { params: Promise<{ slug: string }> }) {
   await connection();
 
@@ -135,7 +136,7 @@ export async function generateMetadata({
     .maybeSingle();
 
   if (!product) {
-    return { title: "Shoe not found | Astylo" };
+   return { title: "Shoe not found" };
   }
 
   const image = product.images?.[0];
@@ -149,7 +150,7 @@ export async function generateMetadata({
   const title = `${product.name} - ${price}`;
 
   return {
-    title: `${product.name} | Astylo`,
+   title: product.name, 
     description,
     alternates: { canonical: `/shoes/${slug}` },
     openGraph: {
