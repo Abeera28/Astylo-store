@@ -12,6 +12,7 @@ import {
   type ShopSettings,
 } from "../PaymentDetails";
 import { useCart } from "../../lib/cart";
+import { SHIPPING_COST } from "../../lib/shipping";
 import { createClient } from "../../lib/supabase/client";
 
 type Errors = {
@@ -19,6 +20,13 @@ type Errors = {
   phone?: string;
   address?: string;
   city?: string;
+};
+
+type Clean = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
 };
 
 const FIELD_IDS = ["name", "phone", "address", "city"] as const;
@@ -162,6 +170,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [review, setReview] = useState<Clean | null>(null);
+
+  const grandTotal = total + SHIPPING_COST;
 
   useEffect(() => {
     const supabase = createClient();
@@ -194,9 +205,9 @@ export default function CheckoutPage() {
     if (errors[key]) setErrors({ ...errors, [key]: undefined });
   }
 
-  async function handleSubmit(e: FormEvent) {
+  // Step 1: validate the form, then show the bill (nothing is saved yet)
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (placing) return;
     setFormError("");
 
     const { errors: found, clean } = validate({ name, phone, address, city });
@@ -211,14 +222,22 @@ export default function CheckoutPage() {
       return;
     }
 
+    setReview(clean);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Step 2: the customer confirmed the bill, so place the order
+  async function placeOrder() {
+    if (!review || placing) return;
+    setFormError("");
     setPlacing(true);
     const supabase = createClient();
 
     const { data, error: rpcError } = await supabase.rpc("place_order", {
-      p_customer_name: clean.name,
-      p_phone: clean.phone,
-      p_address: clean.address,
-      p_city: clean.city,
+      p_customer_name: review.name,
+      p_phone: review.phone,
+      p_address: review.address,
+      p_city: review.city,
       p_payment_method: payment,
       p_items: items.map((i) => ({
         productId: i.productId,
@@ -266,6 +285,113 @@ export default function CheckoutPage() {
     );
   }
 
+  // Bill screen
+  if (review) {
+    return (
+      <main className="min-h-screen">
+        <SiteHeader />
+
+        <section className="p-6 max-w-2xl mx-auto space-y-5">
+          <h1 className="text-2xl font-bold">Review your order</h1>
+
+          <div className="border rounded-lg p-4 text-sm space-y-1">
+            <p className="font-medium">Delivering to</p>
+            <p>{review.name}</p>
+            <p>{review.phone}</p>
+            <p>
+              {review.address}, {review.city}
+            </p>
+            <p className="pt-2">
+              <span className="font-medium">Payment:</span>{" "}
+              {METHOD_LABELS[payment]}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {items.map((item) => (
+              <div
+                key={`${item.productId}-${item.size}-${item.color}`}
+                className="flex items-center gap-3 border rounded-lg p-2"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+                <div className="flex-1">
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-gray-600">
+                    Size {item.size}
+                    {item.color ? ` · ${item.color}` : ""} × {item.quantity}
+                  </p>
+                </div>
+                <p>Rs. {(item.price * item.quantity).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="border rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>Rs. {total.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Delivery charges</span>
+              <span>Rs. {SHIPPING_COST.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-xl font-semibold border-t pt-2">
+              <span>Total</span>
+              <span>Rs. {grandTotal.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {payment !== "cod" && (
+            <PaymentInstructions
+              method={payment}
+              settings={settings}
+              amount={grandTotal}
+              customerName={review.name}
+              customerPhone={review.phone}
+            />
+          )}
+
+          {formError && (
+            <div className="text-red-600 text-sm">
+              <p>{formError}</p>
+              <Link href="/cart" className="underline">
+                Go back to cart
+              </Link>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setReview(null)}
+              disabled={placing}
+              className="border rounded-lg px-5 py-3 disabled:opacity-50"
+            >
+              Edit details
+            </button>
+            <button
+              type="button"
+              onClick={placeOrder}
+              disabled={placing}
+              className="flex-1 bg-black text-white rounded-lg px-5 py-3 text-lg disabled:opacity-50"
+            >
+              {placing ? "Placing order..." : "Confirm & place order"}
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            The final prices and stock are checked when you place the order.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen">
       <SiteHeader />
@@ -274,11 +400,7 @@ export default function CheckoutPage() {
         <h1 className="text-2xl font-bold mb-4">Checkout</h1>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <form
-            onSubmit={handleSubmit}
-            noValidate
-            className="space-y-4"
-          >
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <h2 className="text-lg font-semibold">Delivery details</h2>
             <p className="text-sm text-gray-600">
               Fields marked with <span className="text-red-600">*</span> are
@@ -363,11 +485,11 @@ export default function CheckoutPage() {
               </label>
             ))}
 
-                        {payment !== "cod" && (
-                          <PaymentInstructions
+            {payment !== "cod" && (
+              <PaymentInstructions
                 method={payment}
                 settings={settings}
-                amount={total}
+                amount={grandTotal}
                 customerName={name}
                 customerPhone={phone}
               />
@@ -384,10 +506,9 @@ export default function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={placing}
-              className="w-full bg-black text-white rounded-lg px-5 py-3 text-lg disabled:opacity-50"
+              className="w-full bg-black text-white rounded-lg px-5 py-3 text-lg"
             >
-              {placing ? "Placing order..." : "Place order"}
+              Review order
             </button>
           </form>
 
@@ -416,9 +537,20 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
-            <p className="text-xl font-semibold mt-4">
-              Total: Rs. {total.toLocaleString()}
-            </p>
+
+            <div className="mt-4 space-y-1">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>Rs. {total.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery charges</span>
+                <span>Rs. {SHIPPING_COST.toLocaleString()}</span>
+              </div>
+              <p className="text-xl font-semibold pt-1">
+                Total: Rs. {grandTotal.toLocaleString()}
+              </p>
+            </div>
             <p className="text-sm text-gray-600 mt-1">
               The final prices and stock are checked when you place the order.
             </p>

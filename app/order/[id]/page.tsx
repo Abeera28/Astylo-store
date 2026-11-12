@@ -50,6 +50,8 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
   const settings = shop as ShopSettings | null;
 
   const items = order.items as OrderItem[];
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const shipping = Math.max(0, Number(order.total) - subtotal);
   const orderNumber = order.id.slice(0, 8).toUpperCase();
   const method = order.payment_method as PayMethod;
   const isWallet = method === "jazzcash" || method === "easypaisa";
@@ -113,9 +115,23 @@ async function OrderDetails({ params }: { params: Promise<{ id: string }> }) {
           ))}
         </div>
 
-        <p className="text-xl font-semibold">
-          Total: Rs. {Number(order.total).toLocaleString()}
-        </p>
+        <div className="space-y-1">
+          {shipping > 0 && (
+            <>
+              <div className="flex justify-between text-sm">
+                <span>Subtotal</span>
+                <span>Rs. {subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Delivery charges</span>
+                <span>Rs. {shipping.toLocaleString()}</span>
+              </div>
+            </>
+          )}
+          <p className="text-xl font-semibold">
+            Total: Rs. {Number(order.total).toLocaleString()}
+          </p>
+        </div>
 
         <div className="text-sm text-gray-700">
           <p className="font-medium">Delivering to</p>
