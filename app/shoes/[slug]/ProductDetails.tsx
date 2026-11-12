@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCart } from "../../../lib/cart";
 import ProductGallery from "./ProductGallery";
 
@@ -22,7 +23,8 @@ export default function ProductDetails({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [cartMessage, setCartMessage] = useState("");
+  const [cartStatus, setCartStatus] = useState<"added" | "full" | null>(null);
+  const [triedAdd, setTriedAdd] = useState(false);
   const [colorNote, setColorNote] = useState("");
   const { addItem } = useCart();
 
@@ -30,6 +32,18 @@ export default function ProductDetails({ product }: { product: Product }) {
   const blockedBySize = product.unavailable_colors ?? {};
   const priceText = `Rs. ${Number(product.price).toLocaleString()}`;
   const outOfStock = product.stock <= 0;
+
+  // what is still missing (only shown after the customer tried to add)
+  const missingSize = triedAdd && !selectedSize;
+  const missingColor = triedAdd && colors.length > 0 && !selectedColor;
+  const errorText =
+    missingSize && missingColor
+      ? "Please select a size and a color."
+      : missingSize
+      ? "Please select a size."
+      : missingColor
+      ? "Please select a color."
+      : "";
 
   function colorsForSize(size: string) {
     const blocked = blockedBySize[size] ?? [];
@@ -47,6 +61,7 @@ export default function ProductDetails({ product }: { product: Product }) {
 
   function chooseSize(size: string) {
     setSelectedSize(size);
+    setCartStatus(null);
 
     if (
       selectedColor &&
@@ -64,18 +79,20 @@ export default function ProductDetails({ product }: { product: Product }) {
   function chooseColor(colorName: string) {
     setSelectedColor(colorName);
     setColorNote("");
+    setCartStatus(null);
   }
 
   function handleAddToCart() {
-    if (!selectedSize) {
-      setCartMessage("Please select a size first.");
-      setTimeout(() => setCartMessage(""), 2500);
-      return;
-    }
+    const noSize = !selectedSize;
+    const noColor = colors.length > 0 && !selectedColor;
 
-    if (colors.length > 0 && !selectedColor) {
-      setCartMessage("Please select a color first.");
-      setTimeout(() => setCartMessage(""), 2500);
+    if (noSize || noColor) {
+      setTriedAdd(true);
+      setCartStatus(null);
+      const id = noSize ? "product-size-section" : "product-color-section";
+      document
+        .getElementById(id)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -85,19 +102,15 @@ export default function ProductDetails({ product }: { product: Product }) {
       name: product.name,
       price: Number(product.price),
       image: product.images[0],
-      size: selectedSize,
+      size: selectedSize!,
       color: selectedColor ?? "",
       colorHex: colors.find((c) => c.name === selectedColor)?.hex ?? "",
       quantity: 1,
       maxStock: product.stock,
     });
 
-    setCartMessage(
-      added
-        ? "Added to cart!"
-        : "You already have all the available pairs in your cart."
-    );
-    setTimeout(() => setCartMessage(""), 2500);
+    setTriedAdd(false);
+    setCartStatus(added ? "added" : "full");
   }
 
   function shareText() {
@@ -202,8 +215,15 @@ export default function ProductDetails({ product }: { product: Product }) {
           <p className="text-green-700 font-semibold">In stock</p>
         )}
 
-        <div>
-          <p className="font-medium mb-2">Select size</p>
+        <div id="product-size-section">
+          <p
+            className={`font-medium mb-2 ${missingSize ? "text-red-600" : ""}`}
+          >
+            Select size
+            {missingSize && (
+              <span className="font-normal"> · Please choose a size</span>
+            )}
+          </p>
           <div className="flex flex-wrap gap-2">
             {product.sizes.map((size) => (
               <button
@@ -217,7 +237,9 @@ export default function ProductDetails({ product }: { product: Product }) {
                 className={`px-4 py-2 rounded-lg border disabled:opacity-40 disabled:line-through ${
                   selectedSize === size
                     ? "bg-black text-white border-black"
-                    : "bg-white text-black border-gray-400"
+                    : `bg-white text-black ${
+    missingSize ? "border-red-600" : "border-gray-400"
+  }`
                 }`}
               >
                 {size}
@@ -227,14 +249,15 @@ export default function ProductDetails({ product }: { product: Product }) {
         </div>
 
         {colors.length > 0 && (
-          <div>
-            <p className="font-medium mb-2">
+          <div id="product-color-section">
+            <p
+              className={`font-medium mb-2 ${
+                missingColor ? "text-red-600" : ""
+              }`}
+            >
               Select color
-              {selectedColor && (
-                <span className="font-normal text-gray-600">
-                  {" "}
-                  · {selectedColor}
-                </span>
+              {missingColor && (
+                <span className="font-normal"> · Please choose a color</span>
               )}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -248,19 +271,28 @@ export default function ProductDetails({ product }: { product: Product }) {
                     title={
                       blocked
                         ? `${c.name} is not available in size ${selectedSize}`
-                        : c.name
+                        : undefined
                     }
+                    data-name={c.name}
                     aria-label={c.name}
                     onClick={() => chooseColor(c.name)}
                     className={`color-swatch ${
-                      selectedColor === c.name ? "is-selected" : ""
-                    }`}
+  selectedColor === c.name ? "is-selected" : ""
+} ${missingColor ? "border-red-600" : ""}`}
                   >
                     <span className="color-dot" style={{ background: c.hex }} />
                   </button>
                 );
               })}
             </div>
+
+            {selectedColor && (
+              <p className="mt-2 text-sm">
+                Color:{" "}
+                <span className="font-semibold">{selectedColor}</span>
+              </p>
+            )}
+
             {colorNote ? (
               <p className="mt-2 text-sm text-orange-600">{colorNote}</p>
             ) : !selectedSize ? (
@@ -280,8 +312,49 @@ export default function ProductDetails({ product }: { product: Product }) {
           >
             {outOfStock ? "Out of stock" : "Add to cart"}
           </button>
-          {cartMessage && (
-            <p className="mt-2 text-sm text-gray-700">{cartMessage}</p>
+
+          {errorText && (
+            <p
+              role="alert"
+              className="mt-2 text-sm font-semibold text-red-600"
+            >
+              {errorText}
+            </p>
+          )}
+
+          {cartStatus && (
+            <div
+              role="status"
+              className={`mt-3 rounded-lg border p-3 ${
+                cartStatus === "added"
+                  ? "border-green-600 bg-green-50"
+                  : "border-orange-500 bg-orange-50"
+              }`}
+            >
+              <p
+                className={`font-semibold ${
+                  cartStatus === "added" ? "text-green-700" : "text-orange-700"
+                }`}
+              >
+                {cartStatus === "added"
+                  ? "✓ Added to cart!"
+                  : "You already have all the available pairs in your cart."}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href="/cart"
+                  className="bg-black text-white rounded-lg px-4 py-2 text-sm"
+                >
+                  View cart
+                </Link>
+                <Link
+                  href="/#shoes"
+                  className="border border-black rounded-lg px-4 py-2 text-sm"
+                >
+                  Continue shopping
+                </Link>
+              </div>
+            </div>
           )}
         </div>
 
@@ -297,3 +370,5 @@ export default function ProductDetails({ product }: { product: Product }) {
     </div>
   );
 }
+
+
