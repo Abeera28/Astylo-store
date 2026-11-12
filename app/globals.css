@@ -1140,3 +1140,66 @@
     font-size: 0.85rem;
   }
 }
+
+
+
+
+
+
+
+
+
+@media print {
+  /* hide all site / admin chrome completely (display:none frees the space) */
+  .admin-bar,
+  .site-header,
+  .site-footer,
+  .topbar,
+  header,
+  footer,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* only the order whose Print button was pressed */
+  .print-area:not(.is-printing) {
+    display: none !important;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  /* min-h-screen was forcing a second page */
+  main,
+  .admin-content > main {
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-area {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+}
